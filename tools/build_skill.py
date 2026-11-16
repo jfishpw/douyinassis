@@ -26,7 +26,9 @@ FILE_MAP = {
     'config.example.json': 'scripts/config.example.json',
     'panel.html': 'panel.html',
 }
-SKILL_FILES = ['skill/SKILL.md', 'skill/references/troubleshooting.md', 'skill/assets/icon.png']
+SKILL_FILES = ['skill/SKILL.md', 'skill/references/troubleshooting.md']
+# 注意：SkillHub 禁止上传二进制文件，图标不要打进包（icon.png 留在 docs/ 供商店界面单独上传）。
+OPTIONAL_FILES = []
 
 
 def main():
