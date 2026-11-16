@@ -58,7 +58,7 @@ DEFAULT_CONFIG = {
     },
     "welcome": {
         "enabled": True,
-        "message": "有喜欢的可以和主播说哦",
+        "message": "欢迎光临",
         "poll_interval": 2.5,     # 多久检测一次新用户（秒）
         "gap": 6,                 # 两条欢迎之间至少间隔（秒）
         "history": 200,           # 最多回看多少条聊天消息（直播间越忙越要大）

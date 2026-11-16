@@ -16,7 +16,7 @@
   },
   "welcome": {
     "enabled": true,
-    "message": "有喜欢的可以和主播说哦",
+    "message": "欢迎光临",
     "poll_interval": 2.5,
     "gap": 6,
     "history": 200

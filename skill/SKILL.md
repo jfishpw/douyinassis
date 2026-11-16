@@ -58,7 +58,7 @@ examples_en:
 | `promo.mode` | 多条话术的发送方式：`sequential` 顺序轮流 / `random` 随机（不与上一条重复） | `sequential` |
 | `promo.interval` | 话术发送间隔（秒），**最快 10 秒**（下限） | `300` |
 | `welcome.enabled` | 是否欢迎新用户 | `true` |
-| `welcome.message` | 欢迎文案（自动加 `@用户名` 前缀；**仅支持单行**） | `有喜欢的可以和主播说哦` |
+| `welcome.message` | 欢迎文案（自动加 `@用户名` 前缀；**仅支持单行**） | `欢迎光临` |
 | `welcome.poll_interval` | 新用户检测频率（秒），最快 1 秒 | `2.5` |
 | `welcome.gap` | 两条欢迎最小间隔（秒），0~120 | `6` |
 | `welcome.history` | 回看多少条聊天消息（20~500，直播间越忙越要大） | `200` |
