@@ -2,7 +2,7 @@
 name: douyin-live-interact
 display_name: 抖音直播间自动互动
 display_name_en: Douyin Live Auto Interaction
-version: 1.3.6
+version: 1.4.0
 author: "jfishpw"
 description: 抖音网页版直播间自动互动。通过 CDP 控制本机 Chrome，定时发送互动话术、自动欢迎新进用户、空闲时按住 Z 键持续点赞；自带本地控制面板，可独立暂停或恢复任一功能、在线修改全部参数、查看运行状态与日志，支持长期挂机（断线自动重连、未开播自动刷新）。当用户需要抖音直播间自动评论、自动欢迎新用户、自动点赞、直播间自动互动脚本，或需要加控制面板与开关、暂停或继续点赞与欢迎、在线调整话术频率、排查不互动不点赞原因时使用本技能。适用于 Windows 本机 Chrome。
 description_zh: 抖音网页版直播间自动互动：定时话术、自动欢迎新用户、按住 Z 键持续点赞；自带本地控制面板，可单独暂停或恢复任一功能、在线改参数、看运行状态与日志，支持断线重连与未开播自动刷新。
@@ -25,8 +25,9 @@ examples_en:
 
 ## 前置条件
 
-- Windows 本机 + Chrome 浏览器（**安装路径自动探测**：config 指定 → 注册表 App Paths → Program Files / Program Files (x86) / `%LOCALAPPDATA%` 用户级安装 → 仍找不到时回退 Edge）
-- Python 3.8+，安装依赖：`pip install requests websocket-client`
+- Windows 本机 + Chrome 浏览器（**安装路径自动探测**：config 指定 → 注册表 App Paths → Program Files / Program Files (x86) / `%LOCALAPPDATA%` 用户级安装 → 仍找不到时回退 Edge；**浏览器版本不限**，新旧 Chrome 都能带调试端口，Edge 用 Edge 自己的默认配置目录）
+- Python 3.8+（建议 3.10+），安装依赖：`pip install requests websocket-client`
+- **解释器自动挑选**：脚本按「依赖是否装好」选 Python，候选顺序 `runtime.python_path` → PATH 的 `python`/`python3` → `py -3`；会跳过 Microsoft Store 的 `WindowsApps\python.exe` 别名占位符；全不合格时明确报错并给出 pip 命令
 - **编码复读额外依赖**：`pip install uiautomation`（内部依赖 comtypes），并且需要 **Windows 11 的实时辅助字幕**（设置 → 辅助功能 → 字幕，或 `Win+Ctrl+L`）。没装该依赖时其余功能不受影响，只会在日志里提示一次
 - Chrome 能以 `--remote-debugging-port=9222` 启动（脚本内已处理）
 - 抖音网页版已登录（用日常 Chrome 配置目录启动即可带上登录态）

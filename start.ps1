@@ -62,13 +62,23 @@ if (-not $Chrome) {
     Write-Output '  "browser": { "chrome_path": "你的 chrome.exe 完整路径" }'
     exit 1
 }
-Write-Output ('浏览器: ' + $Chrome)
+$BrowserVer = ''
+try { $BrowserVer = (Get-Item $Chrome).VersionInfo.ProductVersion } catch {}
+if ($BrowserVer) { Write-Output ('浏览器: ' + $Chrome + ' (v' + $BrowserVer + ')') }
+else { Write-Output ('浏览器: ' + $Chrome) }
 
-# 配置目录（登录态所在）：必须**显式传** --user-data-dir。
-# Chrome M136+ 起：不传该参数（即使实际用的就是默认目录）会**静默忽略** --remote-debugging-port，
-# 表现就是"浏览器起来了但 9222 连不上"。2026-11-16 实测：不传 → 11 秒超时；传默认目录 → 1 秒就绪。
-# 默认值由 %LOCALAPPDATA% 拼出，不写死盘符，换电脑仍可用。
-$UserData = Join-Path $env:LOCALAPPDATA (Join-Path 'Google\Chrome' 'User Data')
+# 默认配置目录要**按浏览器区分**：Chrome 与 Edge 的用户数据目录不同。
+# （早前 Edge 兜底时仍用 Chrome 的目录，等于给 Edge 开了个空配置，登录态全丢。）
+function Get-DefaultUserData {
+    param([string]$ExeLeaf)
+    if ($ExeLeaf -eq 'msedge.exe') {
+        return (Join-Path $env:LOCALAPPDATA (Join-Path 'Microsoft\Edge' 'User Data'))
+    }
+    return (Join-Path $env:LOCALAPPDATA (Join-Path 'Google\Chrome' 'User Data'))
+}
+
+$ExeLeaf = Split-Path $Chrome -Leaf
+$UserData = Get-DefaultUserData -ExeLeaf $ExeLeaf
 if ($Config -and $Config.browser -and $Config.browser.user_data_dir) {
     $custom = [string]$Config.browser.user_data_dir
     if (Test-Path $custom) { $UserData = $custom }
@@ -76,9 +86,10 @@ if ($Config -and $Config.browser -and $Config.browser.user_data_dir) {
 }
 Write-Output ('配置目录: ' + $UserData)
 
+# --user-data-dir 必须**显式传**：Chrome M136+ 用默认目录时会静默忽略 --remote-debugging-port；
+# 老版本 Chrome 与 Edge 传了也无害，所以统一都传，一套参数兼容所有版本。
 $LaunchArgs = @('--remote-debugging-port=9222', '--remote-allow-origins=*', ('--user-data-dir=' + $UserData))
 $ManualCmd = '"' + $Chrome + '" ' + ($LaunchArgs -join ' ')
-$ExeLeaf = Split-Path $Chrome -Leaf
 
 function Get-RunningBrowser {
     @(Get-CimInstance Win32_Process -Filter ("Name='" + $ExeLeaf + "'") -ErrorAction SilentlyContinue |
@@ -159,45 +170,68 @@ if ($lockPid) {
     }
     exit 0
 }
-# 选一个**真正装了依赖**的 Python，而不是只看命令名是否存在。
-# 教训（2026-11-16）：PATH 里可能有个干净 python（没有 requests），
-# 直接用它启动 → 主程序秒退 → 表现为"面板打不开、什么反应都没有"。
+# 选一个**真正装了依赖**的 Python，而不是只看命令名是否存在。兼容这几类差异：
+#   · PATH 里的 python 可能是"干净"的（没 requests）→ 逐个验依赖
+#   · 可能是 Microsoft Store 的应用别名占位符（WindowsApps\python.exe，运行只会弹商店）→ 跳过
+#   · 有的机器只有 py 启动器（py -3），PATH 里没有 python
+#   · 有的机器 python 版本过老（<3.8）→ 给提示
 function Test-PythonDeps {
-    param([string]$Exe)
+    param([string]$Exe, [string[]]$PreArgs = @())
     if (-not $Exe) { return $false }
+    if ($Exe -like '*\WindowsApps\*') { return $false }
     try {
-        & $Exe -c "import requests, websocket" *> $null
+        & $Exe @PreArgs -c "import requests, websocket" *> $null
         return ($LASTEXITCODE -eq 0)
     } catch { return $false }
 }
 
-$Candidates = @()
+$PyCandidates = @()
 if ($Config -and $Config.runtime -and $Config.runtime.python_path) {
-    $Candidates += [string]$Config.runtime.python_path
+    $PyCandidates += , @([string]$Config.runtime.python_path)
 }
-$Candidates += @(
-    (Get-Command python  -ErrorAction SilentlyContinue).Source,
-    (Get-Command python3 -ErrorAction SilentlyContinue).Source,
-    'python'
-)
+foreach ($name in @('python', 'python3')) {
+    $src = (Get-Command $name -ErrorAction SilentlyContinue).Source
+    if ($src) { $PyCandidates += , @($src) }
+}
+if (Get-Command py -ErrorAction SilentlyContinue) {
+    $PyCandidates += , @('py', '-3')
+}
+
 $PythonExe = $null
-$tried = @()
-foreach ($c in $Candidates) {
-    if (-not $c) { continue }
-    if ($tried -contains $c) { continue }
-    $tried += $c
-    if (Test-PythonDeps $c) { $PythonExe = $c; break }
-    Write-Output ('  · 跳过（未装依赖）: ' + $c)
+$PythonArgs = @()
+$seen = @()
+foreach ($c in $PyCandidates) {
+    $key = ($c -join ' ')
+    if ($seen -contains $key) { continue }
+    $seen += $key
+    $exe = $c[0]
+    $pre = @()
+    if ($c.Count -gt 1) { $pre = $c[1..($c.Count - 1)] }
+    if (Test-PythonDeps -Exe $exe -PreArgs $pre) {
+        $PythonExe = $exe
+        $PythonArgs = $pre
+        break
+    }
+    Write-Output ('  · 跳过（未装依赖或不可用）: ' + $key)
 }
 if (-not $PythonExe) {
     Write-Output '没有找到装好依赖的 Python，主程序无法启动。请任选一种方式：'
     Write-Output '  1) 给现有 Python 装依赖：  pip install requests websocket-client'
     Write-Output '  2) 在 config.json 里指定 Python 路径（需已装依赖）：'
-    Write-Output '     "runtime": { "python_path": "C:\\Path\\To\\python.exe" }'
+    Write-Output '     "runtime": { "python_path": "C:\Path\To\python.exe" }'
     exit 1
 }
-Write-Output ('Python: ' + $PythonExe)
-$py = Start-Process -FilePath $PythonExe -ArgumentList '-X utf8', (Join-Path $Workspace 'run_loop.py') -WindowStyle Hidden -PassThru
+
+$PyVer = ''
+try { $PyVer = (& $PythonExe @PythonArgs -c "import sys;print(sys.version.split()[0])").Trim() } catch {}
+if ($PyVer) { Write-Output ('Python: ' + $PythonExe + ' (v' + $PyVer + ')') }
+else { Write-Output ('Python: ' + $PythonExe) }
+try {
+    if ($PyVer -and ([version]$PyVer -lt [version]'3.8')) {
+        Write-Output '⚠ 该 Python 版本低于 3.8，可能跑不起来，建议升级到 3.10+'
+    }
+} catch {}
+$py = Start-Process -FilePath $PythonExe -ArgumentList (@() + $PythonArgs + @('-X', 'utf8', (Join-Path $Workspace 'run_loop.py'))) -WindowStyle Hidden -PassThru
 Write-Output ('自动互动已启动 (PID ' + $py.Id + ')')
 Write-Output ('日志: ' + $Workspace + '\loop.log')
 Write-Output ('改配置: ' + $Workspace + '\config.json（也可用控制面板在线改）')

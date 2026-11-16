@@ -21,7 +21,8 @@
 
 ## 环境要求
 
-- Windows 10/11 + Chrome（Edge 亦可，脚本会自动回退）
+- Windows 10/11 + Chrome（Edge 亦可，脚本会自动回退；两者都用各自的默认配置目录，登录态不串）
+- **浏览器版本**：不限。Chrome 136 起用默认配置目录会忽略调试端口，脚本已统一显式传 `--user-data-dir`，新旧版本都适用。
 - **浏览器路径**：脚本会自动探测（注册表 App Paths → `Program Files` / `Program Files (x86)` / `%LOCALAPPDATA%`），**绝大多数情况不用配**。但如果你的 Chrome 是**绿色版 / 便携版 / 装在非 C 盘 / 自定义安装目录**，探测不到时需要在 `config.json` 里按**你自己电脑的实际路径**填写：
 
   ```json
@@ -31,15 +32,19 @@
   }
   ```
 
-  不知道路径怎么查：Chrome 地址栏输入 `chrome://version`，「可执行文件」那一行就是。`user_data_dir` 一般留空——留空时脚本会用 Chrome 默认配置目录并**显式传给浏览器**（注意：Chrome M136 起，不显式传这个参数会**静默忽略调试端口**，表现为"浏览器起来了但连不上"）。
-- Python 3.8+，依赖：
+  不知道路径怎么查：Chrome 地址栏输入 `chrome://version`，「可执行文件」那一行就是。`user_data_dir` 一般留空——留空时脚本会按浏览器取默认配置目录并**显式传给浏览器**（注意：Chrome M136 起，不显式传这个参数会**静默忽略调试端口**，表现为"浏览器起来了但连不上"）。
+- Python 3.8+（建议 3.10+），依赖：
 
 ```
 pip install requests websocket-client
 pip install uiautomation        # 仅「编码复读」需要
 ```
 
-- **Python 选择**：启动脚本会**自动挑选装好依赖的 Python**（PATH 里的 `python` / `python3`，或 `config.json` 的 `runtime.python_path`）；都不满足时会明确报错并给出安装命令，不会静默失败。
+- **Python 选择**：脚本会自动挑选**装好依赖**的解释器，候选顺序为 `runtime.python_path` → PATH 里的 `python` / `python3` → `py -3` 启动器。以下情况会被自动跳过或处理：
+  - PATH 里的 python 没装 `requests` → 跳过，继续试下一个
+  - **Microsoft Store 的 python 别名占位符**（`...\WindowsApps\python.exe`，运行只会弹商店）→ 跳过
+  - 只有 `py` 启动器、没有 `python` 命令 → 用 `py -3`
+  - 全都不合格 → 明确报错并给出 `pip install` 命令，不静默失败
 - 编码复读还依赖 **Windows 实时辅助字幕**（设置 → 辅助功能 → 字幕，或 `Win+Ctrl+L`）。用不了时其余三个循环照常工作。
 - 抖音网页版需已登录（脚本用浏览器默认配置目录启动，登录态自然带上）
 
