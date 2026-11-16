@@ -2,7 +2,7 @@
 name: douyin-live-interact
 display_name: 抖音直播间自动互动
 display_name_en: Douyin Live Auto Interaction
-version: 1.4.2
+version: 1.4.3
 author: "jfishpw"
 category: content
 allowed-tools: Read, Write, Edit, Bash

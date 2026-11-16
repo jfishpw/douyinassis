@@ -883,64 +883,113 @@ def thread_safe_send(client, text):
 
 # 数字字符集要包含 ASR 的中文逐位读法（幺零六 = 106）：
 # 分隔符必须排除这些字符，否则"幺零六"会被切成"分隔符 + 零六"→ 得到 06（实测踩过）
-CE_NUM = r'[0-9零〇幺一二两三四五六七八九]{2,6}'
-CE_SEP = r'[^0-9零〇幺一二两三四五六七八九]{0,6}'
+# 数字字符集包含 ASR 的中文读法：逐位（幺零六）与数值读法（一百零六）都覆盖。
+# 分隔符必须**排除**这些字符，否则"幺零六"会被切成"分隔符 + 零六"→ 得到 06（实测踩过）。
+CE_NUM = r'[0-9零〇幺一二两三四五六七八九十百千]{2,8}'
+CE_SEP = r'[^0-9零〇幺一二两三四五六七八九十百千]{0,6}'
 CE_SEP_TIGHT = r'[\s的是为:：]{0,2}'
-CE_ANCHOR = r'(?:编码|款号|编号|货号|链接|小黄车)'
+# 锚词：加了"号"，覆盖"第 106 号""106 号链接"这类口播
+CE_ANCHOR = r'(?:编码|款号|编号|货号|链接|小黄车|号)'
 CE_CN_DIGIT = {'零': '0', '〇': '0', '幺': '1', '一': '1', '二': '2', '两': '2', '三': '3',
                '四': '4', '五': '5', '六': '6', '七': '7', '八': '8', '九': '9'}
+CE_CN_UNIT = {'十': 10, '百': 100, '千': 1000}
 CE_PAT_PREFIX = re.compile(rf'(?P<pre>[A-Za-z])[\-－]?(?P<num>{CE_NUM})')
 CE_PAT_LINK = re.compile(rf'[A-Za-z](?:连接|链接){CE_SEP_TIGHT}(?P<num>{CE_NUM})')
 CE_PAT_BEFORE = re.compile(rf'{CE_ANCHOR}{CE_SEP}(?P<num>{CE_NUM})')
 CE_PAT_AFTER = re.compile(rf'(?P<num>{CE_NUM}){CE_SEP}{CE_ANCHOR}')
 CE_PRICE = re.compile(r'(?:\d+(?:\.\d+)?\s*(?:米|元|块|块钱|万))|(?:价格|优惠|券后|到手价)')
 
-code_state = {'last': {}, 'counts': {}, 'sent': [], 'ui': None, 'no_uia_logged': False}
+# 处理窗口的重叠长度：字幕每隔 0.6 秒轮询一次，编码/锚词很可能被切在两次轮询之间
+# （第一次拿到"…幺零"，第二次拿到"六的编码…"）。只处理纯增量会永久漏掉这类命中，
+# 所以每次回看已处理文本尾部一段，只接受"结束位置跨过上次边界"的匹配。
+CE_OVERLAP = 40
+
+code_state = {'last': {}, 'counts': {}, 'sent': [], 'ui': None, 'no_uia_logged': False,
+              'block_log': {}}
 CAPTION_ID = 'CaptionsTextBlock'
 
 
 def ce_normalize(s):
-    return ''.join(CE_CN_DIGIT.get(ch, ch) for ch in s)
+    """中文数字 → 阿拉伯数字。
 
-
-def extract_codes(text):
-    """从字幕文本里提取候选编码，返回 [(code, 命中片段)]。
-
-    覆盖三种口播写法：
-      · 字母前缀：A123 / B-108 / b幺零八
-      · 锚点在前：编码 幺零六 / 编号A123
-      · 锚点在后：幺零六的编码
-    价格/优惠语境整段丢弃，避免把"16.9米"当编码；"b连接"的 b 属于链接名，只取数字。
+    两种口播都要支持：
+      · 逐位读法：幺零六 → 106
+      · 数值读法：一百零六 → 106、三十 → 30
+    返回 None 表示这段不是有效数字。
     """
+    s = str(s or '')
+    if any(ch in CE_CN_UNIT for ch in s):
+        section, num = 0, 0
+        for ch in s:
+            if ch in CE_CN_DIGIT:
+                num = int(CE_CN_DIGIT[ch])
+            elif ch in CE_CN_UNIT:
+                unit = CE_CN_UNIT[ch]
+                if num == 0:
+                    num = 1
+                section += num * unit
+                num = 0
+            else:
+                return None
+        return str(section + num)
+    out = ''.join(CE_CN_DIGIT.get(ch, ch) for ch in s)
+    return out if out.isdigit() else None
+
+
+def _ce_matches(text):
+    """提取候选编码，带位置：返回 [(code, 片段, 起始下标, 结束下标)]。"""
     flat = re.sub(r'[\s\u3000]+', '', str(text or ''))
     found = []
 
     for m in CE_PAT_PREFIX.finditer(text):
         num = ce_normalize(m.group('num'))
-        if num.isdigit():
-            found.append((m.group('pre').upper() + num, m.group(0)))
+        if num:
+            found.append((m.group('pre').upper() + num, m.group(0), m.start(), m.end()))
     for m in CE_PAT_LINK.finditer(flat):
         num = ce_normalize(m.group('num'))
-        if num.isdigit() and 2 <= len(num) <= 6:
-            found.append((num, m.group(0)))
+        if num and 2 <= len(num) <= 6:
+            found.append((num, m.group(0), m.start(), m.end()))
     for pat in (CE_PAT_BEFORE, CE_PAT_AFTER):
         for m in pat.finditer(flat):
             if CE_PRICE.search(m.group(0)):
                 continue
             num = ce_normalize(m.group('num'))
-            if num.isdigit() and 2 <= len(num) <= 6:
-                found.append((num, m.group(0)))
+            if num and 2 <= len(num) <= 6:
+                found.append((num, m.group(0), m.start(), m.end()))
 
-    prefixed = {c for c, _ in found if c and c[0].isalpha()}
+    prefixed = {c for c, *_ in found if c and c[0].isalpha()}
     seen, out = set(), []
-    for code, frag in found:
+    for code, frag, start, end in found:
         if code in seen:
             continue
         if code.isdigit() and any(code == q[1:] for q in prefixed):
             continue
         seen.add(code)
-        out.append((code, frag))
+        out.append((code, frag, start, end))
     return out
+
+
+def extract_codes(text):
+    """从文本里提取候选编码，返回 [(code, 命中片段)]（不带位置，便于单测/复用）。"""
+    return [(c, f) for c, f, _s, _e in _ce_matches(text)]
+
+
+def code_block_reason(code, cfg):
+    """说明某编码为什么没发（空字符串=可以发）。用于日志，避免"识别了但没发"无声无息。"""
+    now = time.time()
+    cooldown = max(10.0, float(cfg.get('cooldown', 30)))
+    per_code = max(1, int(cfg.get('per_code', 2)))
+    per_min = max(1, int(cfg.get('per_minute', 2)))
+
+    last = code_state['last'].get(code, 0)
+    if now - last < cooldown:
+        return f'{int(cooldown - (now - last))} 秒冷却中'
+    if code_state['counts'].get(code, 0) >= per_code:
+        return f'同码已达 {per_code} 次上限'
+    fresh = [t for t in code_state['sent'] if now - t < 60]
+    if len(fresh) >= per_min:
+        return f'已达每分钟 {per_min} 条上限'
+    return ''
 
 
 def load_uia():
@@ -1073,13 +1122,26 @@ def code_echo_loop(client, stop_flag):
                 return
             continue
 
-        new_part = text[processed:]
+        # 回看已处理文本的尾部一段：字幕每 0.6 秒轮询一次，编码/锚词很可能被切在
+        # 两次轮询之间（第一次"…幺零"，第二次"六的编码…"）。只处理纯增量会永久漏掉，
+        # 所以每次回看尾部 CE_OVERLAP 字，只接受"结束位置跨过上次边界"的匹配。
+        prev = processed
+        window_start = max(0, prev - CE_OVERLAP)
+        window = text[window_start:]
         processed = len(text)
 
-        for code, frag in extract_codes(new_part):
+        for code, frag, _s, _e in _ce_matches(window):
             if stop_flag.is_set():
                 return
-            if not code_allowed(code, cfg):
+            if window_start + _e <= prev:        # 整段落在已处理区 → 老内容，跳过
+                continue
+            reason = code_block_reason(code, cfg)
+            if reason:
+                # 被闸门拦下时说清楚原因，否则用户只会觉得"识别不到"
+                now = time.time()
+                if now - code_state['block_log'].get(code, 0) > 20:
+                    log(f'[复读] {code} 未发送：{reason}（日志抑制 20 秒）')
+                    code_state['block_log'][code] = now
                 continue
             template = str(cfg.get('template') or '编码 {code}')
             msg = template.replace('{code}', code)
