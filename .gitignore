@@ -1,0 +1,19 @@
+# 运行期与本地文件（含个人信息，不入库）
+config.json
+loop.log
+welcomed.json
+run_loop.lock
+run_loop.stop
+code_out.txt
+
+# Python
+__pycache__/
+*.py[cod]
+
+# 打包产物
+*.zip
+
+# 系统
+Thumbs.db
+desktop.ini
+.DS_Store

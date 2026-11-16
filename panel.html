@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>抖音直播间自动互动 · 控制面板</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --line:#e6e8ec; --text:#1f2329; --muted:#8a9099;
+    --accent:#fe2c55; --accent-soft:#fff1f4; --ok:#00b578; --warn:#ff8f1f; --err:#e5453c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:24px 18px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+  h1{font-size:19px;margin:0;font-weight:600}
+  h1 span{color:var(--muted);font-size:13px;font-weight:400;margin-left:8px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap}
+  .badge{background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--muted)}
+  .badge b{color:var(--text);font-weight:600}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:1px}
+  .dot.on{background:var(--ok)} .dot.off{background:var(--err)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px}
+  .card h2{font-size:14px;margin:0 0 4px;font-weight:600}
+  .card .hint{color:var(--muted);font-size:12px;margin:0 0 14px}
+  /* 开关卡片 */
+  .toggles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  .tg{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+  .tg .row{display:flex;align-items:center;justify-content:space-between}
+  .tg .name{font-weight:600}
+  .tg .desc{font-size:12px;color:var(--muted);min-height:18px}
+  .sw{position:relative;width:44px;height:24px;flex:0 0 auto}
+  .sw input{opacity:0;width:0;height:0;position:absolute}
+  .sw label{position:absolute;inset:0;background:#d6d9de;border-radius:999px;cursor:pointer;transition:.18s}
+  .sw label::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+                   background:#fff;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .sw input:checked + label{background:var(--accent)}
+  .sw input:checked + label::after{transform:translateX(20px)}
+  .tg.off{background:#fafbfc}
+  .tg.off .name{color:var(--muted)}
+  /* 表单 */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px 18px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;color:var(--muted)}
+  .field label b{color:var(--text);font-weight:600}
+  input[type=text],input[type=number],select,textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+    font:inherit;background:#fff;color:var(--text);outline:none;transition:.15s}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  textarea{resize:vertical;min-height:64px}
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+  button{font:inherit;border-radius:9px;padding:9px 18px;cursor:pointer;border:1px solid var(--line);
+         background:#fff;color:var(--text);transition:.15s}
+  button:hover{border-color:#c9cdd4}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{filter:brightness(1.05)}
+  button.ghost{background:transparent}
+  .msg{font-size:12px;min-height:18px}
+  .msg.ok{color:var(--ok)} .msg.err{color:var(--err)}
+  ul.errors{margin:8px 0 0;padding-left:18px;color:var(--err);font-size:12px}
+  /* 状态数字 */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+  .stat{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+  .stat .k{font-size:12px;color:var(--muted)}
+  .stat .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+  .stat .v small{font-size:12px;font-weight:400;color:var(--muted);margin-left:2px}
+  /* 日志 */
+  pre.log{margin:0;background:#1f2329;color:#d7dae0;border-radius:10px;padding:12px 14px;
+          font:12px/1.55 ui-monospace,Consolas,"Courier New",monospace;max-height:260px;overflow:auto;white-space:pre-wrap}
+  .foot{color:var(--muted);font-size:12px;text-align:center;margin-top:6px}
+  .sep{height:1px;background:var(--line);margin:18px 0}
+  .lim{color:var(--muted);font-weight:400}
+  .lim b{color:var(--accent);font-weight:600}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);
+       border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:#fff}
+  .chk input{width:16px;height:16px;margin:0;accent-color:var(--accent)}
+  .note{background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+        font-size:12px;line-height:1.7;color:var(--muted)}
+  .note b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>抖音直播间自动互动 <span>控制面板</span></h1>
+    <div class="badges">
+      <span class="badge"><span id="dotRun" class="dot"></span><b id="txtRun">连接中…</b></span>
+      <span class="badge">PID <b id="txtPid">-</b></span>
+      <span class="badge">运行 <b id="txtUptime">-</b></span>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>功能开关</h2>
+    <p class="hint">点一下立即生效（1~3 秒内），不需要重启。状态会写入 config.json。</p>
+    <div class="toggles" id="toggles"></div>
+    <div class="actions">
+      <button id="btnAllOff">全部暂停</button>
+      <button id="btnAllOn" class="primary">全部恢复</button>
+      <span class="msg" id="msgCtrl"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>运行状态</h2>
+    <p class="hint" id="hintErr"></p>
+    <div class="stats">
+      <div class="stat"><div class="k">已欢迎</div><div class="v"><span id="stWelcomed">0</span><small>人</small></div></div>
+      <div class="stat"><div class="k">点赞轮数</div><div class="v" id="stLike">0</div></div>
+      <div class="stat"><div class="k">促销次数</div><div class="v" id="stPromo">0</div></div>
+      <div class="stat"><div class="k">复读次数</div><div class="v" id="stCode">0</div></div>
+      <div class="stat"><div class="k">最近编码</div><div class="v" style="font-size:15px" id="stLastCode">-</div></div>
+      <div class="stat"><div class="k">最近促销</div><div class="v" style="font-size:15px" id="stLastPromo">-</div></div>
+      <div class="stat"><div class="k">最近欢迎</div><div class="v" style="font-size:15px" id="stLastWelcome">-</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>详细设置</h2>
+    <p class="hint">改完点「保存并生效」，正在运行的循环下个周期就会用新设置。</p>
+    <form id="form" onsubmit="return false">
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1">
+          <label><b>直播间地址</b>（换直播间后需等下次重连生效）</label>
+          <input type="text" id="f_live_url" placeholder="https://live.douyin.com/xxxx">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <h2 style="margin-bottom:12px">促销话术</h2>
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1">
+          <label>话术内容（<b>每行一条</b>，按下面的发送方式轮流/随机发出；单行不超过 200 字，空行自动忽略）</label>
+          <textarea id="f_promo_message" rows="6" placeholder="第一句：正在直播讲解中，有喜欢的扣1，&#10;第二句：全部是主播手工制作，有喜欢的可以问哦&#10;第三句：想要的扣对应款式编号"></textarea>
+        </div>
+        <div class="field">
+          <label>发送方式</label>
+          <select id="f_promo_mode">
+            <option value="sequential">顺序轮流（1→2→3→回到 1）</option>
+            <option value="random">随机（尽量不与上一条重复）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>发送间隔（秒）<span class="lim" id="lim_promo">｜允许 10~3600 秒，最快 10 秒</span></label>
+          <input type="number" id="f_promo_interval" min="10" max="3600" step="1">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <h2 style="margin-bottom:12px">欢迎新用户</h2>
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1">
+          <label>欢迎文案（自动在前面加 @用户名；仅支持单行）</label>
+          <input type="text" id="f_welcome_message" placeholder="有喜欢的可以和主播说哦">
+        </div>
+        <div class="field">
+          <label>检测频率（秒）<span class="lim" id="lim_poll">｜允许 1~60 秒，最快 1 秒</span></label>
+          <input type="number" id="f_welcome_poll" min="1" max="60" step="0.5">
+        </div>
+        <div class="field">
+          <label>两条欢迎最小间隔（秒）<span class="lim" id="lim_gap">｜允许 0~120 秒，最快 0 秒</span></label>
+          <input type="number" id="f_welcome_gap" min="0" max="120" step="1">
+        </div>
+        <div class="field">
+          <label>回看聊天消息数（直播间越忙越大）<span class="lim" id="lim_history">｜允许 20~500 条</span></label>
+          <input type="number" id="f_welcome_history" min="20" max="500" step="10">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <h2 style="margin-bottom:12px">点赞</h2>
+      <div class="grid">
+        <div class="field">
+          <label>每轮间隔（秒）<span class="lim" id="lim_like">｜允许 1~300 秒，最快 1 秒</span></label>
+          <input type="number" id="f_like_interval" min="1" max="300" step="0.5">
+        </div>
+        <div class="field">
+          <label>每轮按住时长（秒，按住才连续点赞）<span class="lim" id="lim_hold">｜允许 0.3~60 秒</span></label>
+          <input type="number" id="f_like_hold" min="0.3" max="60" step="0.1">
+        </div>
+        <div class="field">
+          <label>点赞按键（单个字符，默认 z）</label>
+          <input type="text" id="f_like_key" maxlength="1">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <h2 style="margin-bottom:12px">编码复读（读字幕 → 发公屏）</h2>
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1">
+          <label>复读话术（必须含 <b>{code}</b> 占位符，会被替换成识别到的编码）</label>
+          <input type="text" id="f_code_template" placeholder="编码 {code}">
+        </div>
+        <div class="field">
+          <label>同一编码冷却（秒，10~600）</label>
+          <input type="number" id="f_code_cooldown" min="10" max="600" step="5">
+        </div>
+        <div class="field">
+          <label>每分钟最多发几条（1~10）</label>
+          <input type="number" id="f_code_per_minute" min="1" max="10" step="1">
+        </div>
+        <div class="field">
+          <label>同一编码最多发几次（1~20）</label>
+          <input type="number" id="f_code_per_code" min="1" max="20" step="1">
+        </div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <b>数据来源</b>：Windows 11 的<b>实时辅助字幕</b>（设置 → 辅助功能 → 字幕，或 <b>Win+Ctrl+L</b>）。
+        必须先打开它并确认字幕在滚动，本功能才有输入；没开时日志会提示"没找到字幕窗口"。<br>
+        <b>识别规则</b>：只在"编码/款号/编号/货号/链接/小黄车"附近取 2~6 位数字，
+        并自动把中文读法转成数字（幺零六 → 106）；价格类数字（16.9 米、9.9 元）会主动跳过。<br>
+        <b>防刷屏</b>：同一编码受冷却与次数上限约束，且每分钟总量封顶，三条同时生效。
+      </div>
+
+      <div class="sep"></div>
+      <h2 style="margin-bottom:12px">节奏随机化与频率限制</h2>
+      <div class="grid">
+        <div class="field">
+          <label>间隔随机化</label>
+          <label class="chk"><input type="checkbox" id="f_jitter_enabled"> 启用（推荐，更像人工节奏）</label>
+        </div>
+        <div class="field">
+          <label>浮动比例（%，0~50，默认 10）</label>
+          <input type="number" id="f_jitter_ratio" min="0" max="50" step="1">
+        </div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <b>随机化规则</b>：所有间隔在上述设定值上下按比例浮动。例如发送间隔 200 秒、浮动 10%，
+        实际每次在 <b>180~220 秒</b> 之间随机；关闭随机化则严格按设定值执行。<br>
+        <b>频率上限（最快限制）</b>：每个间隔都有最小值，随机浮动后的结果也不会低于它——
+        即"再快也快不过这个值"。各字段的最小值见上方每个输入框的说明。<br>
+        点赞的<b>按住时长</b>不是间隔，不参与随机化（它决定单轮点赞的持续时间）。
+      </div>
+
+      <div class="sep"></div>
+      <h2 style="margin-bottom:12px">控制面板</h2>
+      <div class="grid">
+        <div class="field">
+          <label>面板端口（1024~65535，<b>改完需重启脚本</b>）</label>
+          <input type="number" id="f_panel_port" min="1024" max="65535" step="1">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="btnSave">保存并生效</button>
+        <button type="button" class="ghost" id="btnReload">重新载入当前配置</button>
+        <span class="msg" id="msgSave"></span>
+      </div>
+      <ul class="errors" id="errList"></ul>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>实时日志</h2>
+    <p class="hint">最近 30 条（每 2 秒刷新）</p>
+    <pre class="log" id="logBox">加载中…</pre>
+  </div>
+
+  <p class="foot">本面板只监听 127.0.0.1，仅本机可访问</p>
+</div>
+
+<script>
+const FEATURE_DESC = {
+  promo: '定时发送互动话术',
+  welcome: '艾特欢迎新进直播间的人',
+  like: '空闲时按住 Z 持续点赞',
+  code_echo: '听字幕里的编码，自动发到公屏'
+};
+let latest = null;      // 最近一次 state
+let formDirty = false;  // 用户改过表单就不再自动覆盖
+
+const $ = id => document.getElementById(id);
+
+function fmtUptime(s){
+  if (s == null) return '-';
+  const h = Math.floor(s/3600), m = Math.floor(s%3600/60), sec = s%60;
+  return h ? `${h}小时${m}分` : (m ? `${m}分${sec}秒` : `${sec}秒`);
+}
+
+function renderToggles(features){
+  const box = $('toggles');
+  if (!box.dataset.built){
+    box.innerHTML = features.map(f => `
+      <div class="tg" id="tg_${f.key}">
+        <div class="row">
+          <span class="name">${f.label}</span>
+          <span class="sw">
+            <input type="checkbox" id="sw_${f.key}">
+            <label for="sw_${f.key}"></label>
+          </span>
+        </div>
+        <div class="desc">${FEATURE_DESC[f.key] || ''}</div>
+      </div>`).join('');
+    features.forEach(f => {
+      $('sw_' + f.key).addEventListener('change', e => toggle(f.key, e.target.checked));
+    });
+    box.dataset.built = '1';
+  }
+  features.forEach(f => {
+    const sw = $('sw_' + f.key);
+    if (sw && sw.checked !== f.enabled) sw.checked = f.enabled;
+    const card = $('tg_' + f.key);
+    if (card) card.classList.toggle('off', !f.enabled);
+  });
+}
+
+function updateLimits(){
+  if (!latest || !latest.limits) return;
+  const on = $('f_jitter_enabled').checked;
+  const pct = on ? Math.max(0, Math.min(50, Number($('f_jitter_ratio').value) || 0)) : 0;
+  const ratio = pct / 100;
+  const r1 = v => Math.round(v * 10) / 10;
+  // 第 5 个字段表示该参数是否参与随机化：只有真正的"间隔"才浮动，
+  // 回看消息数（history）和按住时长（hold）不随机化，不能显示浮动区间。
+  const pairs = [
+    ['lim_promo','promo_interval','f_promo_interval','秒',true],
+    ['lim_poll','welcome_poll','f_welcome_poll','秒',true],
+    ['lim_gap','welcome_gap','f_welcome_gap','秒',true],
+    ['lim_history','welcome_history','f_welcome_history','条',false],
+    ['lim_like','like_interval','f_like_interval','秒',true],
+    ['lim_hold','like_hold','f_like_hold','秒',false]
+  ];
+  pairs.forEach(([spanId, key, inputId, unit, jittered]) => {
+    const el = $(spanId), lim = latest.limits[key];
+    if (!el || !lim) return;
+    if (!jittered) { el.textContent = `｜允许 ${lim.min}~${lim.max} ${unit}`; return; }
+    const base = Number($(inputId).value);
+    let txt = `｜允许 ${lim.min}~${lim.max} ${unit}，最快 ${lim.min} ${unit}`;
+    if (ratio > 0 && base > 0) {
+      const lo = Math.max(lim.min, base * (1 - ratio));
+      const hi = Math.min(lim.max, base * (1 + ratio));
+      txt += `；当前实际 ${r1(lo)}~${r1(hi)} ${unit}`;
+    }
+    el.textContent = txt;
+  });
+}
+
+function fillForm(cfg){
+  if (!cfg) return;
+  $('f_live_url').value = cfg.live_url || '';
+  $('f_promo_message').value = cfg.promo?.message || '';
+  $('f_promo_mode').value = cfg.promo?.mode || 'sequential';
+  $('f_promo_interval').value = cfg.promo?.interval ?? 300;
+  $('f_welcome_message').value = cfg.welcome?.message || '';
+  $('f_welcome_poll').value = cfg.welcome?.poll_interval ?? 2.5;
+  $('f_welcome_gap').value = cfg.welcome?.gap ?? 6;
+  $('f_welcome_history').value = cfg.welcome?.history ?? 200;
+  $('f_like_interval').value = cfg.like?.interval ?? 5;
+  $('f_like_hold').value = cfg.like?.hold ?? 2;
+  $('f_like_key').value = cfg.like?.key || 'z';
+  $('f_code_template').value = cfg.code_echo?.template ?? '编码 {code}';
+  $('f_code_cooldown').value = cfg.code_echo?.cooldown ?? 30;
+  $('f_code_per_minute').value = cfg.code_echo?.per_minute ?? 2;
+  $('f_code_per_code').value = cfg.code_echo?.per_code ?? 2;
+  $('f_panel_port').value = cfg.panel?.port ?? 8765;
+  $('f_jitter_enabled').checked = cfg.jitter?.enabled ?? true;
+  $('f_jitter_ratio').value = Math.round((cfg.jitter?.ratio ?? 0.1) * 100);
+  updateLimits();
+  formDirty = false;
+}
+
+async function refresh(){
+  try {
+    const r = await fetch('/api/state', {cache:'no-store'});
+    const s = await r.json();
+    latest = s;
+    $('dotRun').className = 'dot ' + (s.cdp === 'connected' ? 'on' : 'off');
+    $('txtRun').textContent = s.cdp === 'connected' ? '已连接直播间' : '未连接（等待 Chrome）';
+    $('txtPid').textContent = s.pid;
+    $('txtUptime').textContent = fmtUptime(s.uptime_s);
+    renderToggles(s.features);
+    $('stWelcomed').textContent = s.stats.welcomed;
+    $('stLike').textContent = s.stats.like_rounds;
+    $('stPromo').textContent = s.stats.promo_count;
+    $('stCode').textContent = s.stats.code_count ?? 0;
+    $('stLastCode').textContent = s.stats.last_code || '-';
+    $('stLastPromo').textContent = s.stats.last_promo_at || '-';
+    $('stLastWelcome').textContent = s.stats.last_welcome_at || '-';
+    $('hintErr').textContent = s.last_error ? ('最近错误：' + s.last_error) : '';
+    const box = $('logBox');
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    box.textContent = (s.log || []).join('\n') || '（暂无日志）';
+    if (atBottom) box.scrollTop = box.scrollHeight;
+    if (!formDirty) fillForm(s.config);
+  } catch (e) {
+    $('dotRun').className = 'dot off';
+    $('txtRun').textContent = '面板连接失败';
+  }
+}
+
+async function post(url, body){
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  return {status:r.status, data: await r.json().catch(()=>({}))};
+}
+
+async function toggle(key, val){
+  const msg = $('msgCtrl');
+  const {data} = await post('/api/control', {[key]: val});
+  if (data.ok) { msg.className='msg ok'; msg.textContent = '已' + (val?'启用':'暂停'); }
+  else { msg.className='msg err'; msg.textContent = (data.errors||['操作失败']).join('；'); }
+  refresh();
+}
+
+async function all(v){
+  const msg = $('msgCtrl');
+  const {data} = await post('/api/control', {all: v});
+  if (data.ok) { msg.className='msg ok'; msg.textContent = v ? '已全部恢复' : '已全部暂停'; }
+  else { msg.className='msg err'; msg.textContent = (data.errors||['操作失败']).join('；'); }
+  refresh();
+}
+
+function collect(){
+  const cur = latest?.config || {};
+  return {
+    live_url: $('f_live_url').value.trim(),
+    promo: {
+      enabled: cur.promo?.enabled ?? true,
+      message: $('f_promo_message').value.trim(),
+      mode: $('f_promo_mode').value,
+      interval: Number($('f_promo_interval').value)
+    },
+    welcome: {
+      enabled: cur.welcome?.enabled ?? true,
+      message: $('f_welcome_message').value.trim(),
+      poll_interval: Number($('f_welcome_poll').value),
+      gap: Number($('f_welcome_gap').value),
+      history: Number($('f_welcome_history').value)
+    },
+    like: {
+      enabled: cur.like?.enabled ?? true,
+      interval: Number($('f_like_interval').value),
+      hold: Number($('f_like_hold').value),
+      key: $('f_like_key').value.trim() || 'z'
+    },
+    code_echo: {
+      enabled: cur.code_echo?.enabled ?? true,
+      template: $('f_code_template').value.trim(),
+      cooldown: Number($('f_code_cooldown').value),
+      per_minute: Number($('f_code_per_minute').value),
+      per_code: Number($('f_code_per_code').value)
+    },
+    jitter: {
+      enabled: $('f_jitter_enabled').checked,
+      ratio: Math.max(0, Math.min(50, Number($('f_jitter_ratio').value) || 0)) / 100
+    },
+    panel: {
+      enabled: cur.panel?.enabled ?? true,
+      port: Number($('f_panel_port').value)
+    }
+  };
+}
+
+async function save(){
+  const msg = $('msgSave'), errs = $('errList');
+  msg.className = 'msg'; msg.textContent = '保存中…'; errs.innerHTML = '';
+  const {data} = await post('/api/config', {config: collect()});
+  if (data.ok){
+    msg.className = 'msg ok'; msg.textContent = '已保存并生效';
+    formDirty = false;
+    refresh();
+  } else {
+    msg.className = 'msg err'; msg.textContent = '保存失败';
+    errs.innerHTML = (data.errors || [data.error || '未知错误']).map(e => `<li>${e}</li>`).join('');
+  }
+}
+
+['input','change'].forEach(ev => document.addEventListener(ev, e => {
+  if (e.target.closest('#form')) { formDirty = true; updateLimits(); }
+}));
+$('btnSave').onclick = save;
+$('btnReload').onclick = () => { if (latest) { fillForm(latest.config); $('msgSave').textContent = '已重新载入'; $('errList').innerHTML=''; } };
+$('btnAllOff').onclick = () => all(false);
+$('btnAllOn').onclick = () => all(true);
+
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "live_url": "https://live.douyin.com/<填你的直播间ID>",
+  "browser": {
+    "chrome_path": "",
+    "user_data_dir": ""
+  },
+  "jitter": {
+    "enabled": true,
+    "ratio": 0.1
+  },
+  "promo": {
+    "enabled": true,
+    "message": "正在直播讲解中，有喜欢的扣1，\n全部是主播手工制作，有喜欢的可以问哦",
+    "mode": "sequential",
+    "interval": 300
+  },
+  "welcome": {
+    "enabled": true,
+    "message": "有喜欢的可以和主播说哦",
+    "poll_interval": 2.5,
+    "gap": 6,
+    "history": 200
+  },
+  "like": {
+    "enabled": true,
+    "interval": 5,
+    "key": "z",
+    "hold": 2
+  },
+  "code_echo": {
+    "enabled": true,
+    "template": "编码 {code}",
+    "cooldown": 30,
+    "per_minute": 2,
+    "per_code": 2
+  },
+  "panel": {
+    "enabled": true,
+    "port": 8765
+  }
+}
