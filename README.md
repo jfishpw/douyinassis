@@ -6,7 +6,7 @@
 
 - 纯本机运行，不接入任何第三方服务，数据不出本机
 - 参数集中在 `config.json`，面板里改了立即生效，不用重启
-- 适配多台电脑：浏览器路径自动探测，配置目录留空即用浏览器默认配置
+- 适配多台电脑：浏览器安装路径自动探测；配置目录默认取 Chrome 默认配置（登录态自动带上）
 
 ## 功能
 
@@ -31,7 +31,7 @@
   }
   ```
 
-  不知道路径怎么查：Chrome 地址栏输入 `chrome://version`，「可执行文件」那一行就是。`user_data_dir` 一般留空（用浏览器默认配置，登录态自动带上）。
+  不知道路径怎么查：Chrome 地址栏输入 `chrome://version`，「可执行文件」那一行就是。`user_data_dir` 一般留空——留空时脚本会用 Chrome 默认配置目录并**显式传给浏览器**（注意：Chrome M136 起，不显式传这个参数会**静默忽略调试端口**，表现为"浏览器起来了但连不上"）。
 - Python 3.8+，依赖：
 
 ```
@@ -82,7 +82,7 @@ copy config.example.json config.json
 - `welcome.message`：仅单行（要与 `@用户名` 拼在一行）
 - `jitter`：`enabled` 开关 + `ratio` 浮动比例（0~0.5）
 - `code_echo`：`template` 必须含 `{code}`；`cooldown` / `per_minute` / `per_code` 为三重闸门
-- `browser`：`chrome_path` / `user_data_dir` 留空即自动探测，一般不用填
+- `browser`：`chrome_path` 留空即自动探测；`user_data_dir` 留空则用 Chrome 默认配置目录，一般都不用填
 
 ## 编码复读是怎么做的
 

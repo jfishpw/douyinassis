@@ -146,7 +146,7 @@
 - **现行实现**（start.ps1 第 2 步）：不再写死安装路径，按顺序探测 `browser.chrome_path`（config）→ 注册表 `App Paths\chrome.exe`（HKLM/HKCU）→ `Program Files` / `Program Files (x86)` / `%LOCALAPPDATA%` 用户级安装 → 都找不到就回退 Edge；判断"是否已在运行"用 `ExecutablePath` **全等**比较（与探测到的那个 exe 比），不受同名进程干扰；启动前**先探测 9222 端口**，通了直接复用，不通才启动，启动后最多等 15 秒轮询。
 - **换电脑后目录不一样**是最常见的失效原因：如果新机器的 Chrome 装在自定义位置（绿色版、非 C 盘、便携版），脚本探测不到时会在 config.json 里加一行即可：
   `"browser": { "chrome_path": "D:\\ChromePortable\\chrome.exe" }`
-  配置目录同理，用 `browser.user_data_dir` 指定；**留空则完全不传** `--user-data-dir`，浏览器用自己的默认配置（也就自然带上登录态）。
+  配置目录同理，用 `browser.user_data_dir` 指定；留空时脚本会取 `%LOCALAPPDATA%\Google\Chrome\User Data` 作默认值并**显式传** `--user-data-dir`。⚠️ **不能省掉这个参数**：Chrome M136+ 起，传了默认目录或不传但用默认目录时，`--remote-debugging-port` 会被**静默忽略**，现象就是"浏览器正常打开、但 9222 连不上、脚本报 CDP 失败"。
 - **仍然失败时**手动启动一次，把真实报错暴露出来：在 PowerShell 里执行探测到的 exe 路径 + 参数 `--remote-debugging-port=9222 --remote-allow-origins=*`（用 `& '路径'` 调用）。随后浏览器访问 `http://127.0.0.1:9222/json/version`，应返回含 `"Browser": "Chrome/..."` 的 JSON。
 - **判断 Chrome 到底关没关**：别看任务管理器的 `chrome.exe` 数量（会把别的 chromium 算进去），看两样——可执行文件路径是否在 `Program Files\Google\Chrome` 下、`http://127.0.0.1:9222` 是否有响应。
 - 若确实有真实 Chrome 在跑但没开调试端口，脚本会提示"请先完全退出 Chrome"——**同一个配置目录无法再以调试模式启动第二个实例**。

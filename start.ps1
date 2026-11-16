@@ -64,19 +64,19 @@ if (-not $Chrome) {
 }
 Write-Output ('浏览器: ' + $Chrome)
 
-# 配置目录（登录态所在）：留空就**不传** --user-data-dir，用浏览器自己的默认配置，
-# 这样别的电脑上目录结构不一样也不影响；只有显式配置了才传。
-$UserData = ''
+# 配置目录（登录态所在）：必须**显式传** --user-data-dir。
+# Chrome M136+ 起：不传该参数（即使实际用的就是默认目录）会**静默忽略** --remote-debugging-port，
+# 表现就是"浏览器起来了但 9222 连不上"。2026-11-16 实测：不传 → 11 秒超时；传默认目录 → 1 秒就绪。
+# 默认值由 %LOCALAPPDATA% 拼出，不写死盘符，换电脑仍可用。
+$UserData = Join-Path $env:LOCALAPPDATA (Join-Path 'Google\Chrome' 'User Data')
 if ($Config -and $Config.browser -and $Config.browser.user_data_dir) {
-    $UserData = [string]$Config.browser.user_data_dir
-    if (-not (Test-Path $UserData)) {
-        Write-Output ('config.json 里的 user_data_dir 不存在，已忽略：' + $UserData)
-        $UserData = ''
-    }
+    $custom = [string]$Config.browser.user_data_dir
+    if (Test-Path $custom) { $UserData = $custom }
+    else { Write-Warning ('config.json 里的 user_data_dir 不存在，改用默认配置目录：' + $custom) }
 }
+Write-Output ('配置目录: ' + $UserData)
 
-$LaunchArgs = @('--remote-debugging-port=9222', '--remote-allow-origins=*')
-if ($UserData) { $LaunchArgs += ('--user-data-dir=' + $UserData) }
+$LaunchArgs = @('--remote-debugging-port=9222', '--remote-allow-origins=*', ('--user-data-dir=' + $UserData))
 $ManualCmd = '"' + $Chrome + '" ' + ($LaunchArgs -join ' ')
 $ExeLeaf = Split-Path $Chrome -Leaf
 
