@@ -2,8 +2,10 @@
 name: douyin-live-interact
 display_name: 抖音直播间自动互动
 display_name_en: Douyin Live Auto Interaction
-version: 1.4.0
+version: 1.4.1
 author: "jfishpw"
+category: content
+allowed-tools: Read, Write, Edit, Bash
 description: 抖音网页版直播间自动互动。通过 CDP 控制本机 Chrome，定时发送互动话术、自动欢迎新进用户、空闲时按住 Z 键持续点赞；自带本地控制面板，可独立暂停或恢复任一功能、在线修改全部参数、查看运行状态与日志，支持长期挂机（断线自动重连、未开播自动刷新）。当用户需要抖音直播间自动评论、自动欢迎新用户、自动点赞、直播间自动互动脚本，或需要加控制面板与开关、暂停或继续点赞与欢迎、在线调整话术频率、排查不互动不点赞原因时使用本技能。适用于 Windows 本机 Chrome。
 description_zh: 抖音网页版直播间自动互动：定时话术、自动欢迎新用户、按住 Z 键持续点赞；自带本地控制面板，可单独暂停或恢复任一功能、在线改参数、看运行状态与日志，支持断线重连与未开播自动刷新。
 description_en: Automate a Douyin web live room. Scheduled messages, auto-welcome for new viewers, and continuous likes by holding Z. A local panel can pause or resume each feature, edit settings live and show status and logs; auto-reconnect for long unattended runs.

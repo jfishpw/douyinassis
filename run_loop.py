@@ -12,7 +12,25 @@
 """
 import sys, os, time, json, re, random, threading, requests, websocket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-sys.stdout.reconfigure(encoding='utf-8')
+
+
+def _setup_console():
+    """控制台输出编码：
+    - 输出到控制台（tty）：**保持系统编码**，中文 Windows 是 GBK，若强转 UTF-8 会显示乱码
+    - 输出被重定向/管道（start.ps1 隐藏窗口时）：统一 UTF-8，便于日志与采集
+    两种情况都设 errors='replace'，避免个别字符打不出来时直接抛异常。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            if stream.isatty():
+                stream.reconfigure(errors='replace')
+            else:
+                stream.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
+
+_setup_console()
 
 CDP_URL = 'http://127.0.0.1:9222'
 
@@ -45,7 +63,7 @@ JITTER_MAX = 0.5          # 随机浮动比例上限（±50%）
 
 # 默认配置：config.json 里缺的项按这里补
 DEFAULT_CONFIG = {
-    "live_url": "https://live.douyin.com/XXXX",
+    "live_url": "https://live.douyin.com/11351594172",
     "jitter": {
         "enabled": True,          # 间隔随机化：避免固定节奏（更像人工）
         "ratio": 0.1,             # 浮动比例：0.1 = ±10%
@@ -58,7 +76,7 @@ DEFAULT_CONFIG = {
     },
     "welcome": {
         "enabled": True,
-        "message": "欢迎光临",
+        "message": "有喜欢的可以和主播说哦",
         "poll_interval": 2.5,     # 多久检测一次新用户（秒）
         "gap": 6,                 # 两条欢迎之间至少间隔（秒）
         "history": 200,           # 最多回看多少条聊天消息（直播间越忙越要大）
@@ -855,7 +873,7 @@ CE_SEP_TIGHT = r'[\s的是为:：]{0,2}'
 CE_ANCHOR = r'(?:编码|款号|编号|货号|链接|小黄车)'
 CE_CN_DIGIT = {'零': '0', '〇': '0', '幺': '1', '一': '1', '二': '2', '两': '2', '三': '3',
                '四': '4', '五': '5', '六': '6', '七': '7', '八': '8', '九': '9'}
-CE_PAT_PREFIX = re.compile(rf'(?P<pre>[A-Za-z])[ـ\-－]?(?P<num>{CE_NUM})')
+CE_PAT_PREFIX = re.compile(rf'(?P<pre>[A-Za-z])[\-－]?(?P<num>{CE_NUM})')
 CE_PAT_LINK = re.compile(rf'[A-Za-z](?:连接|链接){CE_SEP_TIGHT}(?P<num>{CE_NUM})')
 CE_PAT_BEFORE = re.compile(rf'{CE_ANCHOR}{CE_SEP}(?P<num>{CE_NUM})')
 CE_PAT_AFTER = re.compile(rf'(?P<num>{CE_NUM}){CE_SEP}{CE_ANCHOR}')

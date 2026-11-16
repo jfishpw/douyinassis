@@ -8,8 +8,18 @@ if (Test-Path $ConfigFile) {
     $Config = Get-Content $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
     $Url = $Config.live_url
 } else {
-    $Url = 'https://live.douyin.com/XXXX'
-    Write-Output '未找到 config.json，使用内置默认地址'
+    # 首次运行没有 config.json：优先用同目录的 config.example.json 生成一份，
+    # 这样用户打开面板就能直接改直播间地址，而不是面对空配置。
+    $Example = Join-Path $Workspace 'config.example.json'
+    if (Test-Path $Example) {
+        Copy-Item $Example $ConfigFile
+        $Config = Get-Content $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        $Url = $Config.live_url
+        Write-Output '未找到 config.json，已按 config.example.json 生成一份（请在面板里改成你的直播间地址）'
+    } else {
+        $Url = 'https://live.douyin.com/XXXX'
+        Write-Output '未找到 config.json，使用内置默认地址'
+    }
 }
 if ([string]::IsNullOrWhiteSpace($Url)) {
     Write-Output 'config.json 里 live_url 为空，请先配置'
@@ -36,17 +46,17 @@ function Resolve-BrowserPath {
             if ($v -and (Test-Path $v)) { return $v }
         }
     }
-    if ($ExeName -eq 'chrome.exe') {
-        $cands = @(
-            (Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'),
-            (Join-Path ${env:ProgramFiles(x86)} 'Google\Chrome\Application\chrome.exe'),
-            (Join-Path $env:LOCALAPPDATA 'Google\Chrome\Application\chrome.exe')
-        )
-    } else {
-        $cands = @(
-            (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe'),
-            (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe')
-        )
+    $cands = @()
+    # 32 位系统没有 ProgramFiles(x86)，个别精简环境也可能缺 ProgramFiles；
+    # 这里逐个判空再拼路径，避免 Join-Path 收到 $null 直接终止脚本。
+    $roots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA)
+    foreach ($r in $roots) {
+        if (-not $r) { continue }
+        if ($ExeName -eq 'chrome.exe') {
+            $cands += (Join-Path $r 'Google\Chrome\Application\chrome.exe')
+        } else {
+            $cands += (Join-Path $r 'Microsoft\Edge\Application\msedge.exe')
+        }
     }
     foreach ($c in $cands) { if ($c -and (Test-Path $c)) { return $c } }
     return $null
@@ -212,12 +222,13 @@ foreach ($c in $PyCandidates) {
         $PythonArgs = $pre
         break
     }
-    Write-Output ('  · 跳过（未装依赖或不可用）: ' + $key)
+    Write-Output ('  · 跳过（' + $(if ($exe -like '*\WindowsApps\*') { 'Microsoft Store 占位符，不是真解释器' } else { '未装依赖或不可用' }) + '）: ' + $key)
 }
 if (-not $PythonExe) {
     Write-Output '没有找到装好依赖的 Python，主程序无法启动。请任选一种方式：'
-    Write-Output '  1) 给现有 Python 装依赖：  pip install requests websocket-client'
-    Write-Output '  2) 在 config.json 里指定 Python 路径（需已装依赖）：'
+    Write-Output '  1) 给现有 Python 装依赖：  python -m pip install requests websocket-client'
+    Write-Output '  2) 从 python.org 安装（安装时勾选 Add python.exe to PATH），再装上面的依赖'
+    Write-Output '  3) 在 config.json 里指定 Python 路径（需已装依赖）：'
     Write-Output '     "runtime": { "python_path": "C:\Path\To\python.exe" }'
     exit 1
 }
