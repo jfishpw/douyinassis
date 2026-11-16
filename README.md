@@ -22,6 +22,16 @@
 ## 环境要求
 
 - Windows 10/11 + Chrome（Edge 亦可，脚本会自动回退）
+- **浏览器路径**：脚本会自动探测（注册表 App Paths → `Program Files` / `Program Files (x86)` / `%LOCALAPPDATA%`），**绝大多数情况不用配**。但如果你的 Chrome 是**绿色版 / 便携版 / 装在非 C 盘 / 自定义安装目录**，探测不到时需要在 `config.json` 里按**你自己电脑的实际路径**填写：
+
+  ```json
+  "browser": {
+    "chrome_path": "D:\\ChromePortable\\chrome.exe",
+    "user_data_dir": ""
+  }
+  ```
+
+  不知道路径怎么查：Chrome 地址栏输入 `chrome://version`，「可执行文件」那一行就是。`user_data_dir` 一般留空（用浏览器默认配置，登录态自动带上）。
 - Python 3.8+，依赖：
 
 ```
@@ -53,6 +63,8 @@ copy config.example.json config.json
 ## 控制面板
 
 打开 `http://127.0.0.1:8765`：
+
+![控制面板](docs/panel.png)
 
 - 四个功能各一个开关，可独立暂停/恢复，1~3 秒生效
 - 全部设置可在线修改并热生效（端口除外，需重启）
@@ -95,6 +107,7 @@ tools/build_skill.py   从根目录文件组装技能包 zip
 ## 常见问题
 
 - **浏览器没打开 / 提示 CDP 失败**：多数是已有 Chrome 在跑但没开调试端口，脚本会给出提示与手动命令；也可在 `config.json` 的 `browser.chrome_path` 指定路径。
+- **提示找不到 Chrome，或自动探测到的不是你常用那个**：按自己电脑的实际安装路径填 `browser.chrome_path`（`chrome://version` 里能查到），这是最容易因为「每台机器装的位置不一样」而出错的地方。
 - **点赞没反应**：抖音网页版必须「按住」Z 才连续点赞，单击无效；脚本已处理播放器激活与按键参数。
 - **编码复读不工作**：先确认实时辅助字幕已开启且在滚动，详见 troubleshooting 第 9 节。
 
