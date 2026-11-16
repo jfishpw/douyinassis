@@ -10,7 +10,7 @@
   },
   "promo": {
     "enabled": true,
-    "message": "欢迎光临",
+    "message": "欢迎光临，喜欢的朋友点点关注\n今天上新几款，有想了解的可以直接问\n想要的扣对应款式编号",
     "mode": "sequential",
     "interval": 300
   },
