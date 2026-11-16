@@ -113,10 +113,26 @@ STATE = {
 }
 
 
+MAX_LOG_BYTES = 5 * 1024 * 1024   # 单个日志超过 5MB 就轮转，避免长期挂机把磁盘写满
+
+
+def _rotate_log():
+    """只保留一代：loop.log -> loop.log.1（覆盖旧的），保证长期运行不会无限增长。"""
+    try:
+        if os.path.exists(LOG) and os.path.getsize(LOG) > MAX_LOG_BYTES:
+            backup = LOG + '.1'
+            if os.path.exists(backup):
+                os.remove(backup)
+            os.replace(LOG, backup)
+    except Exception:
+        pass
+
+
 def log(msg):
     ts = time.strftime('%H:%M:%S')
     line = f"[{ts}] {msg}"
     print(line, flush=True)
+    _rotate_log()
     try:
         with open(LOG, 'a', encoding='utf-8') as f:
             f.write(line + '\n')
