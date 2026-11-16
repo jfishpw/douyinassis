@@ -2,7 +2,7 @@
 name: douyin-live-interact
 display_name: 抖音直播间自动互动
 display_name_en: Douyin Live Auto Interaction
-version: 1.3.5
+version: 1.3.6
 author: "jfishpw"
 description: 抖音网页版直播间自动互动。通过 CDP 控制本机 Chrome，定时发送互动话术、自动欢迎新进用户、空闲时按住 Z 键持续点赞；自带本地控制面板，可独立暂停或恢复任一功能、在线修改全部参数、查看运行状态与日志，支持长期挂机（断线自动重连、未开播自动刷新）。当用户需要抖音直播间自动评论、自动欢迎新用户、自动点赞、直播间自动互动脚本，或需要加控制面板与开关、暂停或继续点赞与欢迎、在线调整话术频率、排查不互动不点赞原因时使用本技能。适用于 Windows 本机 Chrome。
 description_zh: 抖音网页版直播间自动互动：定时话术、自动欢迎新用户、按住 Z 键持续点赞；自带本地控制面板，可单独暂停或恢复任一功能、在线改参数、看运行状态与日志，支持断线重连与未开播自动刷新。
@@ -51,6 +51,7 @@ examples_en:
 | `live_url` | 直播间地址（start.ps1 用它打开页面） | `https://live.douyin.com/XXXX` |
 | `browser.chrome_path` | 浏览器 exe 完整路径。**留空即自动探测**，换电脑一般不用填 | 空 |
 | `browser.user_data_dir` | 浏览器配置目录。**留空则用 Chrome 默认配置目录并显式传入**（Chrome M136+ 不传该参数会忽略调试端口；路径由 `%LOCALAPPDATA%` 拼出） | 空 |
+| `runtime.python_path` | 指定运行用的 Python（需已装 `requests`/`websocket-client`）。留空则由脚本按依赖自动挑选 | 空 |
 | `jitter.enabled` | 间隔随机化：所有间隔在设定值上下浮动，避免固定节奏 | `true` |
 | `jitter.ratio` | 浮动比例，`0.1` = ±10%，允许 0~0.5（0%~50%） | `0.1` |
 | `promo.enabled` | 是否发送互动话术 | `true` |
@@ -149,7 +150,7 @@ python run_loop.py
 - **编码提取必须带上下文锚点**：只在"编码/款号/编号/货号/链接/小黄车"附近取 2~6 位数字，否则会把"16.9 米""121 本场点赞"当编码。中文读法要逐位归一化（幺零六 → 106），且**分隔符字符类必须排除中文数字**，否则"幺零六"会被切成"分隔符+零六"→ 06（实测踩过）。`b连接`/`B链接` 里的字母属于链接名，只取数字；`A123`/`B-108` 才当字母前缀。
 - **四道闸门防刷屏**：同码冷却、同码次数上限、每分钟总量上限，三者同时生效；发送前再随机延迟 0.6~2 秒，避免"说完立刻复读"的机械感。发送走同一个 `send_lock`，不会和促销/欢迎撞车。
 - **字幕游标必须"先取基线"再增量**（2026-11-15 修的真实 bug）：`CaptionsTextBlock` 的文本是**整场累积**的，不是"当前一句"。所以首次启用、以及从暂停恢复时，都必须把**当前文本长度记为基线**、只处理之后新增的部分。早期实现关闭时把游标重置为 0，导致重新开启后把开启前说过的编码全部补发一遍，还把每分钟配额吃光、当前正在说的编码反而发不出去。改游标相关的代码时务必保持这个顺序：取基线 → 增量 diff → 文本变短时同样只从新内容算起。
-- **换电脑可移植性**（2026-11-11 加固）：启动脚本不再写死浏览器路径与配置目录——依次尝试 `browser.chrome_path` → 注册表 `App Paths\chrome.exe`（HKLM/HKCU）→ 三个常见安装位置 → Edge 兜底；`user_data_dir` 留空时用 `%LOCALAPPDATA%\Google\Chrome\User Data` 拼出默认路径并**显式传 `--user-data-dir`**——**Chrome M136+ 不传该参数会静默忽略 `--remote-debugging-port`**，表现为"浏览器起来了但 9222 连不上"（2026-11-16 实测：不传 11 秒超时，传默认目录 1 秒就绪）。判断"浏览器是否已运行"用 `ExecutablePath` 全等比较，不受同名进程干扰。ps1 保存为 **UTF-8 with BOM**，避免 PowerShell 5.1 在非中文区域按 ANSI 解析导致中文乱码。
+- **换电脑可移植性**（2026-11-11 加固）：启动脚本不再写死浏览器路径与配置目录——依次尝试 `browser.chrome_path` → 注册表 `App Paths\chrome.exe`（HKLM/HKCU）→ 三个常见安装位置 → Edge 兜底；`user_data_dir` 留空时用 `%LOCALAPPDATA%\Google\Chrome\User Data` 拼出默认路径并**显式传 `--user-data-dir`**——**Chrome M136+ 不传该参数会静默忽略 `--remote-debugging-port`**，表现为"浏览器起来了但 9222 连不上"（2026-11-16 实测：不传 11 秒超时，传默认目录 1 秒就绪）。判断"浏览器是否已运行"用 `ExecutablePath` 全等比较，不受同名进程干扰。ps1 保存为 **UTF-8 with BOM**，避免 PowerShell 5.1 在非中文区域按 ANSI 解析导致中文乱码。**选 Python 必须验依赖**：只按命令名去找解释器会踩空——PATH 里可能是个没装 `requests` 的干净 python，启动后主程序秒退，表现为"双击没反应、面板打不开"（2026-11-16 实测）。正确做法是对候选逐个跑 `import requests, websocket` 验通再启动。
 - **暂停 = enabled=false，不是杀线程**：三个循环在 enabled=false 时轻量空转（2 秒轮询一次配置），面板随时能恢复；循环每轮重读 `CONFIG` 全局对象，所以面板保存后下个周期即生效，无需重启。新增功能时也要遵守：循环体内的参数一律从 CONFIG 现读，不要提到循环外缓存。
 - **控制面板只监听 127.0.0.1**：`ThreadingHTTPServer` 绑定本地回环，端口占用时自动顺延 10 个；`/api/state`、`/api/control`、`/api/config` 三个接口，POST 请求体上限 100KB。config 写入走临时文件 + `os.replace` 原子替换，避免读到半截 JSON。
 - **开关只动一个字段**：`set_switches` 深拷贝当前内存配置 → 只改目标 `enabled` → 校验 → 落盘，其他话术/间隔/开关原样保留；`{"all": false}` 只是批量入口。

@@ -4,6 +4,9 @@
     "chrome_path": "",
     "user_data_dir": ""
   },
+  "runtime": {
+    "python_path": ""
+  },
   "jitter": {
     "enabled": true,
     "ratio": 0.1

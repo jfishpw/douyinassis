@@ -159,10 +159,44 @@ if ($lockPid) {
     }
     exit 0
 }
-# 优先用 PATH 里的 python（换电脑也能用）；找不到再退回 'python'
-$PythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
-if (-not $PythonExe) { $PythonExe = (Get-Command python3 -ErrorAction SilentlyContinue).Source }
-if (-not $PythonExe) { $PythonExe = 'python' }
+# 选一个**真正装了依赖**的 Python，而不是只看命令名是否存在。
+# 教训（2026-11-16）：PATH 里可能有个干净 python（没有 requests），
+# 直接用它启动 → 主程序秒退 → 表现为"面板打不开、什么反应都没有"。
+function Test-PythonDeps {
+    param([string]$Exe)
+    if (-not $Exe) { return $false }
+    try {
+        & $Exe -c "import requests, websocket" *> $null
+        return ($LASTEXITCODE -eq 0)
+    } catch { return $false }
+}
+
+$Candidates = @()
+if ($Config -and $Config.runtime -and $Config.runtime.python_path) {
+    $Candidates += [string]$Config.runtime.python_path
+}
+$Candidates += @(
+    (Get-Command python  -ErrorAction SilentlyContinue).Source,
+    (Get-Command python3 -ErrorAction SilentlyContinue).Source,
+    'python'
+)
+$PythonExe = $null
+$tried = @()
+foreach ($c in $Candidates) {
+    if (-not $c) { continue }
+    if ($tried -contains $c) { continue }
+    $tried += $c
+    if (Test-PythonDeps $c) { $PythonExe = $c; break }
+    Write-Output ('  · 跳过（未装依赖）: ' + $c)
+}
+if (-not $PythonExe) {
+    Write-Output '没有找到装好依赖的 Python，主程序无法启动。请任选一种方式：'
+    Write-Output '  1) 给现有 Python 装依赖：  pip install requests websocket-client'
+    Write-Output '  2) 在 config.json 里指定 Python 路径（需已装依赖）：'
+    Write-Output '     "runtime": { "python_path": "C:\\Path\\To\\python.exe" }'
+    exit 1
+}
+Write-Output ('Python: ' + $PythonExe)
 $py = Start-Process -FilePath $PythonExe -ArgumentList '-X utf8', (Join-Path $Workspace 'run_loop.py') -WindowStyle Hidden -PassThru
 Write-Output ('自动互动已启动 (PID ' + $py.Id + ')')
 Write-Output ('日志: ' + $Workspace + '\loop.log')

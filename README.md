@@ -39,6 +39,7 @@ pip install requests websocket-client
 pip install uiautomation        # 仅「编码复读」需要
 ```
 
+- **Python 选择**：启动脚本会**自动挑选装好依赖的 Python**（PATH 里的 `python` / `python3`，或 `config.json` 的 `runtime.python_path`）；都不满足时会明确报错并给出安装命令，不会静默失败。
 - 编码复读还依赖 **Windows 实时辅助字幕**（设置 → 辅助功能 → 字幕，或 `Win+Ctrl+L`）。用不了时其余三个循环照常工作。
 - 抖音网页版需已登录（脚本用浏览器默认配置目录启动，登录态自然带上）
 
@@ -83,6 +84,7 @@ copy config.example.json config.json
 - `jitter`：`enabled` 开关 + `ratio` 浮动比例（0~0.5）
 - `code_echo`：`template` 必须含 `{code}`；`cooldown` / `per_minute` / `per_code` 为三重闸门
 - `browser`：`chrome_path` 留空即自动探测；`user_data_dir` 留空则用 Chrome 默认配置目录，一般都不用填
+- `runtime.python_path`：指定运行用的 Python（需已装 `requests`、`websocket-client`）；留空则由脚本按依赖自动挑选
 
 ## 编码复读是怎么做的
 
