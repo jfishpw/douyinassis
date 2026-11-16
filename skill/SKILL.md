@@ -2,7 +2,7 @@
 name: douyin-live-interact
 display_name: 抖音直播间自动互动
 display_name_en: Douyin Live Auto Interaction
-version: 1.3.2
+version: 1.3.3
 author: "jfishpw"
 description: 抖音网页版直播间自动互动。通过 CDP 控制本机 Chrome，定时发送互动话术、自动欢迎新进用户、空闲时按住 Z 键持续点赞；自带本地控制面板，可独立暂停或恢复任一功能、在线修改全部参数、查看运行状态与日志，支持长期挂机（断线自动重连、未开播自动刷新）。当用户需要抖音直播间自动评论、自动欢迎新用户、自动点赞、直播间自动互动脚本，或需要加控制面板与开关、暂停或继续点赞与欢迎、在线调整话术频率、排查不互动不点赞原因时使用本技能。适用于 Windows 本机 Chrome。
 description_zh: 抖音网页版直播间自动互动：定时话术、自动欢迎新用户、按住 Z 键持续点赞；自带本地控制面板，可单独暂停或恢复任一功能、在线改参数、看运行状态与日志，支持断线重连与未开播自动刷新。
@@ -48,13 +48,13 @@ examples_en:
 
 | 配置项 | 说明 | 默认值 |
 |--------|------|--------|
-| `live_url` | 直播间地址（start.ps1 用它打开页面） | `https://live.douyin.com/<直播间ID>` |
+| `live_url` | 直播间地址（start.ps1 用它打开页面） | `https://live.douyin.com/XXXX` |
 | `browser.chrome_path` | 浏览器 exe 完整路径。**留空即自动探测**，换电脑一般不用填 | 空 |
 | `browser.user_data_dir` | 浏览器配置目录。**留空即不传该参数**，用浏览器自身默认配置（登录态自然带上） | 空 |
 | `jitter.enabled` | 间隔随机化：所有间隔在设定值上下浮动，避免固定节奏 | `true` |
 | `jitter.ratio` | 浮动比例，`0.1` = ±10%，允许 0~0.5（0%~50%） | `0.1` |
 | `promo.enabled` | 是否发送互动话术 | `true` |
-| `promo.message` | 互动话术内容。**支持多行，每行一条话术**（单行 ≤200 字，空行自动忽略） | `正在直播讲解中，有喜欢的扣1，` |
+| `promo.message` | 互动话术内容。**支持多行，每行一条话术**（单行 ≤200 字，空行自动忽略） | `欢迎光临` |
 | `promo.mode` | 多条话术的发送方式：`sequential` 顺序轮流 / `random` 随机（不与上一条重复） | `sequential` |
 | `promo.interval` | 话术发送间隔（秒），**最快 10 秒**（下限） | `300` |
 | `welcome.enabled` | 是否欢迎新用户 | `true` |

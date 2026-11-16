@@ -45,7 +45,7 @@ JITTER_MAX = 0.5          # 随机浮动比例上限（±50%）
 
 # 默认配置：config.json 里缺的项按这里补
 DEFAULT_CONFIG = {
-    "live_url": "https://live.douyin.com/你的直播间ID",
+    "live_url": "https://live.douyin.com/XXXX",
     "jitter": {
         "enabled": True,          # 间隔随机化：避免固定节奏（更像人工）
         "ratio": 0.1,             # 浮动比例：0.1 = ±10%

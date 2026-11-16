@@ -8,7 +8,7 @@ if (Test-Path $ConfigFile) {
     $Config = Get-Content $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
     $Url = $Config.live_url
 } else {
-    $Url = 'https://live.douyin.com/你的直播间ID'
+    $Url = 'https://live.douyin.com/XXXX'
     Write-Output '未找到 config.json，使用内置默认地址'
 }
 if ([string]::IsNullOrWhiteSpace($Url)) {

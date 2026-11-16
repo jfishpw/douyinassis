@@ -1,5 +1,5 @@
 {
-  "live_url": "https://live.douyin.com/<填你的直播间ID>",
+  "live_url": "https://live.douyin.com/XXXX",
   "browser": {
     "chrome_path": "",
     "user_data_dir": ""
@@ -10,7 +10,7 @@
   },
   "promo": {
     "enabled": true,
-    "message": "正在直播讲解中，有喜欢的扣1，\n全部是主播手工制作，有喜欢的可以问哦",
+    "message": "欢迎光临",
     "mode": "sequential",
     "interval": 300
   },
