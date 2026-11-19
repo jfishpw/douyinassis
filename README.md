@@ -4,6 +4,8 @@
 
 通过 Chrome DevTools Protocol 控制本机 Chrome，对抖音**网页版**直播间做四种自动化互动，并提供本地控制面板随时暂停、调参、看状态。
 
+> **直接下载**：不想用 git 的话，到 [Releases](https://github.com/jfishpw/douyinassis/releases/latest) 下载 `douyin-live-interact.zip`，解压后按「快速开始」三步即可。
+
 - 纯本机运行，不接入任何第三方服务，数据不出本机
 - 参数集中在 `config.json`，面板里改了立即生效，不用重启
 - 适配多台电脑：浏览器安装路径自动探测；配置目录默认取 Chrome 默认配置（登录态自动带上）
