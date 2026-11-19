@@ -34,7 +34,12 @@ _setup_console()
 
 CDP_URL = 'http://127.0.0.1:9222'
 
-WORKSPACE = os.path.dirname(os.path.abspath(__file__))
+# 打包成 exe 后，__file__ 指向解包目录，config/日志会写进临时目录然后消失；
+# 所以 frozen（exe）时用 exe 所在目录作为工作目录，和源码运行保持一致。
+if getattr(sys, 'frozen', False):
+    WORKSPACE = os.path.dirname(sys.executable)
+else:
+    WORKSPACE = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(WORKSPACE, 'config.json')
 LOG        = os.path.join(WORKSPACE, 'loop.log')
 WELCOMED   = os.path.join(WORKSPACE, 'welcomed.json')
