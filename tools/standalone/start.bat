@@ -1,7 +1,9 @@
 @echo off
 cd /d "%~dp0"
-echo Starting douyinassis...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start.ps1"
-echo.
-echo If the browser and panel opened, you can close this window.
+echo ==================================================
+echo  douyinassis - douyin live auto interaction
+echo  Close this window to stop. Browser stays open.
+echo  Panel: http://127.0.0.1:8765
+echo ==================================================
+douyinassis.exe
 pause
